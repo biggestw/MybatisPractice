@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--sql映射文件  用于同一管理sql语句，解决硬编码问题-->
+<!--
+    namespace:名称空间
+-->
+<mapper namespace="MybatisDemo.mapper.BrandMapper">
+    <!--映射  匹配数据库字段和类属性  解决不匹配问题-->
+    <!--id  唯一标识  type 别名-->
+    <resultMap id="brandResultMap" type="MybatisDemo.pojo.Brand">
+        <!--子标签  id 完成主键字段的映射  result 完成一般字段的映射-->
+        <result column="brand_name" property="brandName"/>
+        <result column="company_name" property="companyName"/>
+    </resultMap>
+
+    <select id="selectAll" resultMap="brandResultMap">
+        select * from tb_brand;
+    </select>
+
+    <select id="selectById" resultMap="brandResultMap">
+        <!--
+            传递参数可以用#{}或者${};但是#{}可以防止sql注入，而或者则不行
+            特殊字符处理：如使用小于号<会报错
+            解决方法：转义字符或CDATA区
+            <![CDATA[
+
+        ]]>
+        -->
+        select * from tb_brand where id = #{id};
+    </select>
+
+    <select id="selectByCondition" resultMap="brandResultMap">
+        select * from tb_brand
+        <!--1 = 1-->
+        <where>  <!--用where标签可以过滤掉and等关键词并自动调整语句正确  实现动态sql-->
+            <if test="status != null">
+                status = #{status}
+            </if>
+            <if test="companyName != null and companyName != ''">
+                and company_name like #{companyName}
+            </if>
+            <if test="brandName != null and companyName != ''">
+                and brand_name like #{brandName}
+            </if>
+        </where>
+
+    </select>
+
+    <!--单个条件查询
+        choose标签相当于java里面的switch语句  when标签对应case语句
+        里面只有一个生效
+    -->
+    <select id="selectByConditionSingle" resultMap="brandResultMap">
+        select * from tb_brand
+        <where>
+            <choose>
+                <when test="status != null">
+                    status = #{status}
+                </when>
+                <when test="companyName != null and companyName != ''">
+                    and company_name like #{companyName}
+                </when>
+                <when test="brandName != null and companyName != ''">
+                    and brand_name like #{brandName}
+                </when>
+            </choose>
+        </where>
+    </select>
+
+    <!-- 获取这个自增主键值  useGeneratedKeys="true" keyProperty="对应主键的对象"
+   useGeneratedKeys和keyProperty<!–useGeneratedKeys:仅适用于insert和update）
+   这会令MyBatis使用JDBC的getGeneratedKeys方法来取出由数据库内部生成的主键
+   （比如：像MySQL和SQLServer这样的关系型数据库管理系统的自动递增字段）
+    -->
+    <insert id="add" useGeneratedKeys="true" keyProperty="id">
+        insert into tb_brand(brand_name, company_name, ordered, description, status)
+        values (#{brandName}, #{companyName}, #{ordered}, #{description}, #{status})
+    </insert>
+
+    <update id="update">
+        update tb_brand
+        <set>
+            <if test="brandName != null and brandName != ''">
+                brand_name = #{brandName},
+            </if>
+            <if test="companyName != null and companyName != ''">
+                company_name = #{companyName},
+            </if>
+            <if test="ordered != null">
+                ordered = #{ordered},
+            </if>
+            <if test="description != null and description != ''">
+                description = #{description},
+            </if>
+            <if test="status != null">
+                status = #{status}
+            </if>
+        </set>
+        where id = #{id};
+    </update>
+
+    <delete id="deleteById">
+        delete from tb_brand where id = #{id};
+    </delete>
+    <!--
+        mybatis会将数组作为参数，封装为一个map集合，
+        获取参数方法：
+        1.默认：array = 数组  可以直接collection = "array"
+        2.使用@Param注解改变map集合的默认key名称
+    -->
+    <delete id="deleteByIds">
+        delete from tb_brand where id
+        in
+            <foreach collection="ids" item="id" separator=", " open="(" close=")">
+                #{id}
+            </foreach>
+    </delete>
+</mapper>
